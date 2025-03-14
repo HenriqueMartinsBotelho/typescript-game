@@ -52,7 +52,6 @@ const TypeScriptChallenge: React.FC = () => {
 
   const currentChallenge = challenges[currentLevel];
 
-  // Persist progress changes to localStorage
   useEffect(() => {
     saveProgress({ currentLevel, attempts, gameCompleted });
   }, [currentLevel, attempts, gameCompleted]);
@@ -71,11 +70,12 @@ const TypeScriptChallenge: React.FC = () => {
     setAttempts((prev) => prev + 1);
 
     try {
-      // Evaluate the user input (wrapped in parentheses for safety)
-      // eslint-disable-next-line no-eval
-      // const value = eval(`(${userInput})`);
-      // eslint-disable-next-line no-eval
-      const isValid = eval(currentChallenge.validationCode);
+      const value = eval(`(${userInput})`);
+      const validate = new Function(
+        "value",
+        `return ${currentChallenge.validationCode}`
+      );
+      const isValid = validate(value);
 
       if (isValid) {
         setFeedback(`Correct! ${currentChallenge.explanation}`);
@@ -89,14 +89,18 @@ const TypeScriptChallenge: React.FC = () => {
           } else {
             setGameCompleted(true);
           }
-        }, 1500);
+        }, 1000);
       } else {
         setFeedback(
           `Not quite right. Your input doesn't match the type ${currentChallenge.typeDescription}.`
         );
       }
-    } catch (error: any) {
-      setFeedback(`Error evaluating your input: ${error.message}`);
+    } catch (error) {
+      if (error instanceof Error) {
+        setFeedback(`Error evaluating your input: ${error.message}`);
+      } else {
+        setFeedback("Error evaluating your input.");
+      }
     }
   }, [userInput, currentChallenge, currentLevel]);
 

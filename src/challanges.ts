@@ -132,12 +132,7 @@ const challenges: Challenge[] = [
       'typeof value === "function" && Array.isArray(value("test")) && value("test")[0] === "test" && Array.isArray(value(123)) && value(123)[0] === 123',
     explanation:
       "A generic function that takes any type and returns an array of that type.",
-    hints: [
-      "Your function should work with any argument type",
-      "Return an array containing the argument",
-      "Example: (x) => [x]",
-    ],
-    // Answer: (x) => [x]
+    hints: ["Your function should work with any argument type"], // Answer: (x) => [x]
   },
   {
     id: 13,
@@ -148,7 +143,6 @@ const challenges: Challenge[] = [
     hints: [
       "Use an object with only boolean values",
       "All properties must be true or false",
-      "Example: { isActive: true, isLoggedIn: false }",
     ],
     // Answer: { prop1: true, prop2: false }
   },
