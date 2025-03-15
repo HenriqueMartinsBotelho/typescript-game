@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect } from "react";
 import challenges from "./challanges";
 import DisqusChat from "./DisqusChat";
+import { trackButtonClick, trackPageView } from "./api/log";
 
 export type Challenge = {
   id: number;
@@ -54,6 +55,10 @@ const CyberpunkTypeChallenge: React.FC = () => {
   const currentChallenge = challenges[currentLevel];
 
   useEffect(() => {
+    trackPageView(window.location.href);
+  }, []);
+
+  useEffect(() => {
     saveProgress({ currentLevel, attempts, gameCompleted });
   }, [currentLevel, attempts, gameCompleted]);
 
@@ -77,10 +82,17 @@ const CyberpunkTypeChallenge: React.FC = () => {
         `return ${currentChallenge.validationCode}`
       );
       const isValid = validate(value);
-
       if (isValid) {
-        setFeedback(`Correct! ${currentChallenge.explanation}`);
+        const currentExercise = currentLevel + 1;
+        const milestones = [1, 10, 15, challenges.length];
+        if (milestones.includes(currentExercise)) {
+          trackButtonClick(
+            `challenge-${currentExercise}-completed`,
+            window.location.href
+          );
+        }
 
+        setFeedback(`Correct! ${currentChallenge.explanation}`);
         setTimeout(() => {
           if (currentLevel < challenges.length - 1) {
             setCurrentLevel((prev) => prev + 1);
