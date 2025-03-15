@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect } from "react";
 import challenges from "./challanges";
+import DisqusChat from "./DisqusChat";
 
 export type Challenge = {
   id: number;
@@ -204,6 +205,7 @@ const TypeScriptChallenge: React.FC = () => {
       <div className="text-center text-sm text-gray-600 mt-6">
         <p>TypeScript Type Challenge Game</p>
       </div>
+      <DisqusChat />
     </div>
   );
 };
