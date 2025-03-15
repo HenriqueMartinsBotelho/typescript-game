@@ -34,7 +34,7 @@ const saveProgress = (progress: {
   }
 };
 
-const TypeScriptChallenge: React.FC = () => {
+const CyberpunkTypeChallenge: React.FC = () => {
   const [currentLevel, setCurrentLevel] = useState<number>(() => {
     const progress = loadProgress();
     return progress?.currentLevel ?? 0;
@@ -115,99 +115,107 @@ const TypeScriptChallenge: React.FC = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6 bg-gray-100 rounded-lg shadow-lg">
-      <h1 className="text-3xl font-bold mb-6 text-center">
-        TypeScript Type Challenge
-      </h1>
+    <div className="min-h-screen bg-gradient-to-br from-black to-gray-900 flex flex-col items-center p-8">
+      <div className="max-w-3xl w-full p-8 bg-gray-900 rounded-lg shadow-xl border border-green-500">
+        <h1 className="text-4xl font-extrabold mb-8 text-center text-green-400 drop-shadow-lg">
+          TypeScript Type Challenge
+        </h1>
 
-      {gameCompleted ? (
-        <div className="bg-green-100 p-6 rounded-lg text-center">
-          <h2 className="text-2xl font-bold text-green-800 mb-4">
-            🎉 Congratulations! 🎉
-          </h2>
-          <p className="text-lg mb-4">
-            You've completed all the TypeScript type challenges!
-          </p>
-          <p className="mb-6">Total attempts: {attempts}</p>
-          <button
-            onClick={handleReset}
-            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-          >
-            Play Again
-          </button>
-        </div>
-      ) : (
-        <div className="mb-6 bg-white p-4 rounded-lg shadow">
-          <div className="flex justify-between items-center mb-2">
-            <h2 className="text-xl font-semibold">
-              Level {currentLevel + 1} of {challenges.length}
+        {gameCompleted ? (
+          <div className="bg-gray-800 p-6 rounded-lg text-center border border-green-500">
+            <h2 className="text-3xl font-bold text-green-400 mb-4">
+              🎉 Congratulations! 🎉
             </h2>
-            <span className="text-sm text-gray-500">Attempts: {attempts}</span>
-          </div>
-          <p className="text-lg mb-2">
-            Enter a value that satisfies this type:
-          </p>
-          <div className="bg-gray-800 text-white p-3 rounded font-mono mb-4">
-            {currentChallenge.typeDescription}
-          </div>
-
-          <form onSubmit={handleSubmit} className="mb-4">
-            <div className="mb-4">
-              <input
-                type="text"
-                value={userInput}
-                onChange={(e) => setUserInput(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded font-mono"
-                placeholder="Enter your answer here..."
-                autoFocus
-              />
-            </div>
-            <div className="flex space-x-2">
-              <button
-                type="submit"
-                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex-1"
-              >
-                Submit
-              </button>
-              <button
-                type="button"
-                onClick={toggleHint}
-                className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400"
-              >
-                {showHint ? "Hide Hint" : "Show Hint"}
-              </button>
-            </div>
-          </form>
-
-          {showHint && (
-            <div className="bg-yellow-100 p-3 rounded">
-              <h3 className="font-semibold">Hint:</h3>
-              <ul className="list-disc pl-5">
-                {currentChallenge.hints.map((hint, index) => (
-                  <li key={index}>{hint}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {feedback && (
-            <div
-              className={`mt-4 p-3 rounded ${
-                feedback.startsWith("Correct") ? "bg-green-100" : "bg-red-100"
-              }`}
+            <p className="text-lg mb-4 text-white">
+              You've completed all the TypeScript type challenges!
+            </p>
+            <p className="mb-6 text-white">Total attempts: {attempts}</p>
+            <button
+              onClick={handleReset}
+              className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition"
             >
-              {feedback}
+              Play Again
+            </button>
+          </div>
+        ) : (
+          <div className="mb-6 bg-gray-800 p-6 rounded-lg shadow-xl border border-cyan-500">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold text-cyan-400">
+                Level {currentLevel + 1} of {challenges.length}
+              </h2>
+              <span className="text-sm text-gray-300">
+                Attempts: {attempts}
+              </span>
             </div>
-          )}
-        </div>
-      )}
+            <p className="text-lg mb-2 text-white">
+              Enter a value that satisfies this type:
+            </p>
+            <div className="bg-gray-700 text-white p-3 rounded font-mono mb-4 border border-cyan-500">
+              {currentChallenge.typeDescription}
+            </div>
 
-      <div className="text-center text-sm text-gray-600 mt-6">
-        <p>TypeScript Type Challenge Game</p>
+            <form onSubmit={handleSubmit} className="mb-4">
+              <div className="mb-4">
+                <input
+                  type="text"
+                  value={userInput}
+                  onChange={(e) => setUserInput(e.target.value)}
+                  className="w-full p-2 bg-gray-900 text-green-400 border border-green-500 rounded font-mono focus:outline-none focus:ring-2 focus:ring-green-400 transition"
+                  placeholder="Enter your answer here..."
+                  autoFocus
+                />
+              </div>
+              <div className="flex space-x-2">
+                <button
+                  type="submit"
+                  className="bg-green-700 text-white px-4 py-2 rounded hover:bg-green-600 flex-1 transition"
+                >
+                  Submit
+                </button>
+                <button
+                  type="button"
+                  onClick={toggleHint}
+                  className="bg-gray-700 text-gray-300 px-4 py-2 rounded hover:bg-gray-600 transition"
+                >
+                  {showHint ? "Hide Hint" : "Show Hint"}
+                </button>
+              </div>
+            </form>
+
+            {showHint && (
+              <div className="bg-gray-700 p-4 rounded border border-yellow-500">
+                <h3 className="font-semibold text-yellow-300">Hint:</h3>
+                <ul className="list-disc pl-5 text-yellow-300">
+                  {currentChallenge.hints.map((hint, index) => (
+                    <li key={index}>{hint}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {feedback && (
+              <div
+                className={`mt-4 p-4 rounded border ${
+                  feedback.startsWith("Correct")
+                    ? "bg-gray-800 border-green-500 text-green-400"
+                    : "bg-gray-800 border-red-500 text-red-400"
+                }`}
+              >
+                {feedback}
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="text-center text-sm text-gray-400 mt-6">
+          <p>TypeScript Type Challenge Game</p>
+        </div>
       </div>
-      <DisqusChat />
+      <div className="mt-8 w-full">
+        <DisqusChat />
+      </div>
     </div>
   );
 };
 
-export default TypeScriptChallenge;
+export default CyberpunkTypeChallenge;

@@ -13,7 +13,7 @@ const UtterancesChat: React.FC = () => {
       script.setAttribute("repo", "HenriqueMartinsBotelho/public-chat");
       script.setAttribute("issue-term", "pathname");
       script.setAttribute("label", "comment");
-      script.setAttribute("theme", "github-light");
+      script.setAttribute("theme", "github-dark");
       commentBox.current.appendChild(script);
     }
   }, []);
