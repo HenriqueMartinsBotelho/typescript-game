@@ -11,13 +11,16 @@ export const trackPageView = async (pageUrl: string): Promise<void> => {
   const payload: PageViewPayload = { page_url: pageUrl };
 
   try {
-    const response = await fetch("http://195.200.2.137:3010/api/page-views", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
+    const response = await fetch(
+      "https://api2.beetcode.com.br/api/page-views",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      }
+    );
 
     if (!response.ok) {
       console.error("Failed to track page view:", response.statusText);
