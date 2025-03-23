@@ -1,14 +1,15 @@
 import { defineConfig } from "vite";
-import tailwindcss from "@tailwindcss/vite";
+import react from "@vitejs/plugin-react";
 
 export default defineConfig({
-  plugins: [tailwindcss()],
+  plugins: [react()],
   server: {
     proxy: {
       "/api": {
         target: "https://api2.beetcode.com.br",
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ""),
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api\/api/, "/api"),
       },
     },
   },
