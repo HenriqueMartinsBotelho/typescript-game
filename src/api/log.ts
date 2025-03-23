@@ -17,7 +17,6 @@ export const trackPageView = async (pageUrl: string): Promise<void> => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
         },
         body: JSON.stringify(payload),
       }
@@ -51,7 +50,6 @@ export const trackButtonClick = async (
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
         },
         body: JSON.stringify(payload),
       }
