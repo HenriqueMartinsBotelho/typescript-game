@@ -1,16 +1,24 @@
 import { useEffect, useRef, useState } from "react";
-import { Challenge, ChallengeEditorProps } from "./App";
+import { ChallengeEditorProps, ChallengeMode } from "./App";
 import * as monaco from "monaco-editor/esm/vs/editor/editor.api";
 import * as ts from "typescript";
 
-const getStarterCode = (mode: Challenge["mode"]) =>
-  mode === "value-to-type"
-    ? "// Write a value that matches the type\nconst solution = "
-    : "// Write a type that matches the value\ntype Solution = ";
+export type Challenge = {
+  id: string;
+  title: string;
+  description: string;
+  mode: ChallengeMode;
+  typeDefinition?: string;
+  valueDefinition?: string;
+  hints?: string[];
+};
+
+const getStarterCode = () =>
+  "// Write a value that matches the type\nconst solution = ";
 
 const editorOptions: monaco.editor.IStandaloneEditorConstructionOptions = {
   minimap: { enabled: false },
-  lineNumbers: "on",
+  wordWrap: "on",
   fontSize: 14,
   scrollBeyondLastLine: false,
   automaticLayout: true,
@@ -34,7 +42,7 @@ const ChallengeEditor: React.FC<ChallengeEditorProps> = ({
   useEffect(() => {
     if (editorRef.current && !monacoEditorRef.current) {
       monacoEditorRef.current = monaco.editor.create(editorRef.current, {
-        value: getStarterCode(challenge.mode),
+        value: getStarterCode(),
         language: "typescript",
         theme: "vs-dark",
         ...editorOptions,
@@ -49,7 +57,7 @@ const ChallengeEditor: React.FC<ChallengeEditorProps> = ({
 
   useEffect(() => {
     if (monacoEditorRef.current) {
-      monacoEditorRef.current.setValue(getStarterCode(challenge.mode));
+      monacoEditorRef.current.setValue(getStarterCode());
       setResult(null);
       setShowHint(false);
     }
@@ -57,40 +65,113 @@ const ChallengeEditor: React.FC<ChallengeEditorProps> = ({
 
   const checkSolution = () => {
     const userCode = monacoEditorRef.current?.getValue() || "";
-    const fullCode =
-      challenge.mode === "value-to-type"
-        ? `${challenge.typeDefinition}\n${userCode}\nconst _check: Expected = solution;`
-        : `${challenge.valueDefinition}\n${userCode}\nconst _check: Solution = example;`;
+
+    const solutionMatch = userCode.match(/const solution = (.*?)(;|\s*$)/);
+    if (!solutionMatch || !solutionMatch[1]) {
+      setResult({
+        success: false,
+        message: "Please provide a value for 'solution'.",
+      });
+      return;
+    }
+
+    const solutionValue = solutionMatch[1].trim();
+    if (
+      solutionValue === "" ||
+      solutionValue === "null" ||
+      solutionValue === "undefined"
+    ) {
+      setResult({
+        success: false,
+        message: "Solution cannot be empty, null, or undefined.",
+      });
+      return;
+    }
 
     try {
-      const output = ts.transpileModule(fullCode, {
-        compilerOptions: {
-          target: ts.ScriptTarget.ES2015,
-          module: ts.ModuleKind.CommonJS,
-          strict: true,
-          noEmitOnError: true,
-        },
-        reportDiagnostics: true,
-      });
+      const validateTypeScript = `
+        ${challenge.typeDefinition || ""}
+        ${userCode}
+        
+        function validateSolution<T>(value: T): T { return value; }
+        const test1 = validateSolution<Expected>(solution);
+      `;
 
-      if (output.diagnostics?.length) {
+      // Create an in-memory compiler host and typescript environment
+      const filename = "test.ts";
+      const languageService = ts.createLanguageService(
+        {
+          getCompilationSettings: () => ({
+            strict: true,
+            noImplicitAny: true,
+            target: ts.ScriptTarget.ES2015,
+            module: ts.ModuleKind.CommonJS,
+            lib: ["dom", "es2015"]
+          }),
+          getScriptFileNames: () => [filename],
+          getScriptVersion: () => "1",
+          getScriptSnapshot: (name) => {
+            if (name === filename) {
+              return ts.ScriptSnapshot.fromString(validateTypeScript);
+            }
+            return undefined;
+          },
+          getCurrentDirectory: () => "",
+          getDefaultLibFileName: (options) => ts.getDefaultLibFileName(options),
+          fileExists: (path) => path === filename,
+          readFile: (path) => path === filename ? validateTypeScript : undefined,
+          readDirectory: () => [],
+          directoryExists: () => false,
+          getDirectories: () => []
+        },
+        ts.createDocumentRegistry()
+      );
+
+      const syntacticDiagnostics = languageService.getSyntacticDiagnostics(filename);
+      const semanticDiagnostics = languageService.getSemanticDiagnostics(filename);
+      const diagnostics = [...syntacticDiagnostics, ...semanticDiagnostics];
+
+      if (diagnostics.length > 0) {
+        const formattedDiagnostics = diagnostics
+          .map((diagnostic) => {
+            return ts.flattenDiagnosticMessageText(
+              diagnostic.messageText,
+              "\n"
+            );
+          })
+          .join("\n");
+
         setResult({
           success: false,
-          message: `Type error(s):\n${output.diagnostics
-            .map((d) => ts.flattenDiagnosticMessageText(d.messageText, "\n"))
-            .join("\n")}`,
+          message: `Type error detected:\n${formattedDiagnostics}`,
         });
-      } else {
-        setResult({
-          success: true,
-          message: "Great job! Your solution passes the type check!",
-        });
-        onComplete(challenge.id);
+        return;
       }
+
+      if (challenge.id.includes("object")) {
+        if (
+          solutionValue.startsWith('"') ||
+          solutionValue.match(/^[0-9]+$/) ||
+          solutionValue === "true" ||
+          solutionValue === "false"
+        ) {
+          setResult({
+            success: false,
+            message: "Solution must be an object, not a primitive value",
+          });
+          return;
+        }
+      }
+
+      setResult({
+        success: true,
+        message: "Parabéns! Sua solução passa na verificação de tipo!",
+      });
+      onComplete(challenge.id);
     } catch (error) {
       setResult({
         success: false,
-        message: `Error: ${
+        message: `Erro: ${
           error instanceof Error ? error.message : String(error)
         }`,
       });
@@ -103,16 +184,12 @@ const ChallengeEditor: React.FC<ChallengeEditorProps> = ({
         <div className="flex justify-between items-center">
           <h2 className="text-xl font-bold">{challenge.title}</h2>
           <span className="bg-blue-600 px-2 py-1 rounded text-sm">
-            {challenge.mode === "value-to-type"
-              ? "Value → Type"
-              : "Type → Value"}
+            Value → Type
           </span>
         </div>
         <p className="mt-2 text-gray-300">{challenge.description}</p>
         <div className="mt-4 p-3 bg-gray-900 rounded-md font-mono text-sm">
-          {challenge.mode === "value-to-type"
-            ? challenge.typeDefinition
-            : challenge.valueDefinition}
+          {challenge.typeDefinition}
         </div>
         {challenge.hints?.length && (
           <div className="mt-4">
