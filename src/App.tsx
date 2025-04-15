@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ChallengeList from "./ChallengeList";
 import ChallengeEditor from "./ChallengeEditor";
 import { challenges } from "./challanges";
@@ -34,6 +34,20 @@ const TypeScriptChallengeGame: React.FC = () => {
   const [completedChallenges, setCompletedChallenges] = useState<Set<string>>(
     new Set()
   );
+
+  useEffect(() => {
+    const savedProgress = localStorage.getItem("completedChallenges");
+    if (savedProgress) {
+      setCompletedChallenges(new Set(JSON.parse(savedProgress)));
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(
+      "completedChallenges",
+      JSON.stringify([...completedChallenges])
+    );
+  }, [completedChallenges]);
 
   return (
     <div className="flex flex-col h-screen bg-gray-900 text-white">
