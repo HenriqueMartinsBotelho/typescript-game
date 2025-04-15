@@ -38,6 +38,8 @@ const ChallengeEditor: React.FC<ChallengeEditorProps> = ({
   const monacoEditorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(
     null
   );
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isCompletedRef = useRef<boolean>(false);
 
   useEffect(() => {
     if (editorRef.current && !monacoEditorRef.current) {
@@ -47,12 +49,26 @@ const ChallengeEditor: React.FC<ChallengeEditorProps> = ({
         theme: "vs-dark",
         ...editorOptions,
       });
-    }
 
-    return () => {
-      monacoEditorRef.current?.dispose();
-      monacoEditorRef.current = null;
-    };
+      const changeDisposable = monacoEditorRef.current.onDidChangeModelContent(() => {
+        if (debounceTimerRef.current) {
+          clearTimeout(debounceTimerRef.current);
+        }
+        
+        debounceTimerRef.current = setTimeout(() => {
+          checkSolution();
+        }, 500); // Wait 500ms after typing stops
+      });
+
+      return () => {
+        changeDisposable.dispose();
+        if (debounceTimerRef.current) {
+          clearTimeout(debounceTimerRef.current);
+        }
+        monacoEditorRef.current?.dispose();
+        monacoEditorRef.current = null;
+      };
+    }
   }, []);
 
   useEffect(() => {
@@ -60,6 +76,7 @@ const ChallengeEditor: React.FC<ChallengeEditorProps> = ({
       monacoEditorRef.current.setValue(getStarterCode());
       setResult(null);
       setShowHint(false);
+      isCompletedRef.current = false;
     }
   }, [challenge]);
 
@@ -167,7 +184,11 @@ const ChallengeEditor: React.FC<ChallengeEditorProps> = ({
         success: true,
         message: "Parabéns! Sua solução passa na verificação de tipo!",
       });
-      onComplete(challenge.id);
+      
+      if (!isCompletedRef.current) {
+        isCompletedRef.current = true;
+        onComplete(challenge.id);
+      }
     } catch (error) {
       setResult({
         success: false,
