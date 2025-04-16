@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { ChallengeEditorProps, ChallengeMode } from "./App";
 import * as monaco from "monaco-editor/esm/vs/editor/editor.api";
 import * as ts from "typescript";
@@ -40,47 +40,10 @@ const ChallengeEditor: React.FC<ChallengeEditorProps> = ({
   );
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isCompletedRef = useRef<boolean>(false);
-
-  useEffect(() => {
-    if (editorRef.current && !monacoEditorRef.current) {
-      monacoEditorRef.current = monaco.editor.create(editorRef.current, {
-        value: getStarterCode(),
-        language: "typescript",
-        theme: "vs-dark",
-        ...editorOptions,
-      });
-
-      const changeDisposable = monacoEditorRef.current.onDidChangeModelContent(() => {
-        if (debounceTimerRef.current) {
-          clearTimeout(debounceTimerRef.current);
-        }
-        
-        debounceTimerRef.current = setTimeout(() => {
-          checkSolution();
-        }, 500); // Wait 500ms after typing stops
-      });
-
-      return () => {
-        changeDisposable.dispose();
-        if (debounceTimerRef.current) {
-          clearTimeout(debounceTimerRef.current);
-        }
-        monacoEditorRef.current?.dispose();
-        monacoEditorRef.current = null;
-      };
-    }
-  }, []);
-
-  useEffect(() => {
-    if (monacoEditorRef.current) {
-      monacoEditorRef.current.setValue(getStarterCode());
-      setResult(null);
-      setShowHint(false);
-      isCompletedRef.current = false;
-    }
-  }, [challenge]);
-
-  const checkSolution = () => {
+  
+  // Using useCallback with challenge as a dependency ensures the function gets
+  // recreated with the latest challenge whenever it changes
+  const checkSolution = useCallback(() => {
     const userCode = monacoEditorRef.current?.getValue() || "";
 
     const solutionMatch = userCode.match(/const solution = (.*?)(;|\s*$)/);
@@ -106,6 +69,7 @@ const ChallengeEditor: React.FC<ChallengeEditorProps> = ({
     }
 
     try {
+      // Now challenge will always be the current one
       const validateTypeScript = `
         ${challenge.typeDefinition || ""}
         ${userCode}
@@ -197,7 +161,48 @@ const ChallengeEditor: React.FC<ChallengeEditorProps> = ({
         }`,
       });
     }
-  };
+  }, [challenge, onComplete]); // Add challenge as a dependency for the callback
+
+  // This effect runs only once to initialize the editor
+  useEffect(() => {
+    if (editorRef.current && !monacoEditorRef.current) {
+      monacoEditorRef.current = monaco.editor.create(editorRef.current, {
+        value: getStarterCode(),
+        language: "typescript",
+        theme: "vs-dark",
+        ...editorOptions,
+      });
+
+      const changeDisposable = monacoEditorRef.current.onDidChangeModelContent(() => {
+        if (debounceTimerRef.current) {
+          clearTimeout(debounceTimerRef.current);
+        }
+        
+        debounceTimerRef.current = setTimeout(() => {
+          checkSolution();
+        }, 500); // Wait 500ms after typing stops
+      });
+
+      return () => {
+        changeDisposable.dispose();
+        if (debounceTimerRef.current) {
+          clearTimeout(debounceTimerRef.current);
+        }
+        monacoEditorRef.current?.dispose();
+        monacoEditorRef.current = null;
+      };
+    }
+  }, [checkSolution]); // Add checkSolution as a dependency
+
+  // Reset state when challenge changes
+  useEffect(() => {
+    if (monacoEditorRef.current) {
+      monacoEditorRef.current.setValue(getStarterCode());
+      setResult(null);
+      setShowHint(false);
+      isCompletedRef.current = false;
+    }
+  }, [challenge]);
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -235,13 +240,7 @@ const ChallengeEditor: React.FC<ChallengeEditorProps> = ({
         />
       </div>
       <div className="bg-gray-800 p-4">
-        <button
-          onClick={checkSolution}
-          className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
-        >
-          Check Solution
-        </button>
-        {result && (
+      {result && (
           <div
             className={`mt-4 p-3 rounded-md ${
               result.success

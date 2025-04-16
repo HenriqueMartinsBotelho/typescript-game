@@ -1,53 +1,43 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import ChallengeList from "./ChallengeList";
 import ChallengeEditor from "./ChallengeEditor";
 import { challenges } from "./challanges";
 
-export type ChallengeMode = "value-to-type" | "type-to-value";
-
-export type Challenge = {
-  id: string;
-  title: string;
-  description: string;
-  mode: ChallengeMode;
-  typeDefinition?: string;
-  valueDefinition?: string;
-  hints?: string[];
-};
-
-export type ChallengeEditorProps = {
-  challenge: Challenge;
-  onComplete: (challengeId: string) => void;
-};
-
-export type ChallengeListProps = {
-  challenges: Challenge[];
-  currentChallenge: Challenge;
-  completedChallenges: Set<string>;
-  onSelectChallenge: (challenge: Challenge) => void;
-};
-
 const TypeScriptChallengeGame: React.FC = () => {
-  const [currentChallenge, setCurrentChallenge] = useState<Challenge>(
-    challenges[0]
-  );
-  const [completedChallenges, setCompletedChallenges] = useState<Set<string>>(
-    new Set()
-  );
-
-  useEffect(() => {
-    const savedProgress = localStorage.getItem("completedChallenges");
-    if (savedProgress) {
-      setCompletedChallenges(new Set(JSON.parse(savedProgress)));
+  const [completedChallenges, setCompletedChallenges] = useState<Set<string>>(() => {
+    try {
+      const savedProgress = localStorage.getItem("completedChallenges");
+      return savedProgress ? new Set(JSON.parse(savedProgress)) : new Set();
+    } catch (error) {
+      console.error("Failed to load completed challenges from localStorage:", error);
+      return new Set();
     }
-  }, []);
+  });
 
   useEffect(() => {
-    localStorage.setItem(
-      "completedChallenges",
-      JSON.stringify([...completedChallenges])
-    );
+    try {
+      localStorage.setItem(
+        "completedChallenges",
+        JSON.stringify([...completedChallenges])
+      );
+    } catch (error) {
+      console.error("Failed to save completed challenges to localStorage:", error);
+    }
   }, [completedChallenges]);
+
+  const [currentChallenge, setCurrentChallenge] = useState(challenges[0]);
+
+  const handleChallengeComplete = (challengeId: string) => {
+    const updatedCompletedChallenges = new Set(completedChallenges).add(challengeId);
+    setCompletedChallenges(updatedCompletedChallenges);
+    
+    const currentIndex = challenges.findIndex(challenge => challenge.id === challengeId);
+    const nextIndex = currentIndex + 1;
+    
+    if (nextIndex < challenges.length) {
+      setCurrentChallenge(challenges[nextIndex]);
+    }
+  };
 
   return (
     <div className="flex flex-col h-screen bg-gray-900 text-white">
@@ -65,9 +55,7 @@ const TypeScriptChallengeGame: React.FC = () => {
         />
         <ChallengeEditor
           challenge={currentChallenge}
-          onComplete={(challengeId) =>
-            setCompletedChallenges((prev) => new Set(prev).add(challengeId))
-          }
+          onComplete={handleChallengeComplete}
         />
       </div>
     </div>
