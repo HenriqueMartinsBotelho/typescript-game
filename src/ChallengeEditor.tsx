@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { ChallengeEditorProps, ChallengeMode } from "./App";
 import * as monaco from "monaco-editor/esm/vs/editor/editor.api";
 import * as ts from "typescript";
+import "monaco-editor/esm/vs/language/typescript/monaco.contribution";
 
 export type Challenge = {
   id: string;
@@ -25,6 +26,28 @@ const editorOptions: monaco.editor.IStandaloneEditorConstructionOptions = {
   tabSize: 2,
 };
 
+// This function gets TypeScript definitions directly from the worker
+const getMonacoTypeScriptDefs = async () => {
+  if (!monaco.languages.typescript) {
+    console.warn("TypeScript language features not available yet");
+    return "";
+  }
+
+  try {
+    return await monaco.languages.typescript
+      .getTypeScriptWorker()
+      .then((worker) => worker(monaco.Uri.parse("file:///lib.d.ts")))
+      .then((client) => client.getScriptText("file:///lib.d.ts"))
+      .catch((error) => {
+        console.error("Failed to load TypeScript definitions:", error);
+        return "";
+      });
+  } catch (error) {
+    console.error("Error getting TypeScript definitions:", error);
+    return "";
+  }
+};
+
 const ChallengeEditor: React.FC<ChallengeEditorProps> = ({
   challenge,
   onComplete,
@@ -34,19 +57,53 @@ const ChallengeEditor: React.FC<ChallengeEditorProps> = ({
     message: string;
   } | null>(null);
   const [showHint, setShowHint] = useState(false);
+  const [libDefs, setLibDefs] = useState<string>("");
+  const [isTypeScriptReady, setIsTypeScriptReady] = useState(false);
+  
   const editorRef = useRef<HTMLDivElement>(null);
-  const monacoEditorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(
-    null
-  );
+  const monacoEditorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isCompletedRef = useRef<boolean>(false);
-  
-  // Using useCallback with challenge as a dependency ensures the function gets
-  // recreated with the latest challenge whenever it changes
-  const checkSolution = useCallback(() => {
-    const userCode = monacoEditorRef.current?.getValue() || "";
 
-    const solutionMatch = userCode.match(/const solution : Expected = (.*?)(;|\s*$)/);
+  // Initialize TypeScript and load definitions
+  useEffect(() => {
+    const initTypeScript = async () => {
+      if (!monaco.languages.typescript) {
+        console.warn("TypeScript language features not available yet");
+        return;
+      }
+
+      // Configure Monaco's TypeScript settings
+      monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
+        target: monaco.languages.typescript.ScriptTarget.ES2020,
+        strict: true,
+        allowNonTsExtensions: true,
+        moduleResolution: monaco.languages.typescript.ModuleResolutionKind.NodeJs,
+        module: monaco.languages.typescript.ModuleKind.CommonJS,
+        noEmit: true,
+        lib: ["dom", "es2020"],
+      });
+
+      // Load TypeScript definitions
+      const defs = await getMonacoTypeScriptDefs();
+      if (defs) {
+        setLibDefs(defs);
+      }
+
+      setIsTypeScriptReady(true);
+    };
+
+    initTypeScript();
+  }, []);
+
+  const checkSolution = useCallback(() => {
+    if (!monacoEditorRef.current) return;
+    
+    const userCode = monacoEditorRef.current.getValue();
+    const solutionMatch = userCode.match(
+      /const solution : Expected = (.*?)(;|\s*$)/
+    );
+    
     if (!solutionMatch || !solutionMatch[1]) {
       setResult({
         success: false,
@@ -69,8 +126,9 @@ const ChallengeEditor: React.FC<ChallengeEditorProps> = ({
     }
 
     try {
-      // Now challenge will always be the current one
+      // Using loaded type definitions
       const validateTypeScript = `
+        ${libDefs}
         ${challenge.typeDefinition || ""}
         ${userCode}
         
@@ -85,9 +143,10 @@ const ChallengeEditor: React.FC<ChallengeEditorProps> = ({
           getCompilationSettings: () => ({
             strict: true,
             noImplicitAny: false,
-            target: ts.ScriptTarget.ES2015,
+            target: ts.ScriptTarget.ES2022,
             module: ts.ModuleKind.CommonJS,
-            lib: ["dom", "es2022"]
+            jsx: ts.JsxEmit.React,
+            lib: ["dom", "es2022", "es5"],
           }),
           getScriptFileNames: () => [filename],
           getScriptVersion: () => "1",
@@ -100,16 +159,19 @@ const ChallengeEditor: React.FC<ChallengeEditorProps> = ({
           getCurrentDirectory: () => "",
           getDefaultLibFileName: (options) => ts.getDefaultLibFileName(options),
           fileExists: (path) => path === filename,
-          readFile: (path) => path === filename ? validateTypeScript : undefined,
+          readFile: (path) =>
+            path === filename ? validateTypeScript : undefined,
           readDirectory: () => [],
           directoryExists: () => false,
-          getDirectories: () => []
+          getDirectories: () => [],
         },
         ts.createDocumentRegistry()
       );
 
-      const syntacticDiagnostics = languageService.getSyntacticDiagnostics(filename);
-      const semanticDiagnostics = languageService.getSemanticDiagnostics(filename);
+      const syntacticDiagnostics =
+        languageService.getSyntacticDiagnostics(filename);
+      const semanticDiagnostics =
+        languageService.getSemanticDiagnostics(filename);
       const diagnostics = [...syntacticDiagnostics, ...semanticDiagnostics];
 
       if (diagnostics.length > 0) {
@@ -129,6 +191,7 @@ const ChallengeEditor: React.FC<ChallengeEditorProps> = ({
         return;
       }
 
+      // Special case for object challenges
       if (challenge.id.includes("object")) {
         if (
           solutionValue.startsWith('"') ||
@@ -148,7 +211,7 @@ const ChallengeEditor: React.FC<ChallengeEditorProps> = ({
         success: true,
         message: "Parabéns! Sua solução passa na verificação de tipo!",
       });
-      
+
       if (!isCompletedRef.current) {
         isCompletedRef.current = true;
         onComplete(challenge.id);
@@ -161,10 +224,11 @@ const ChallengeEditor: React.FC<ChallengeEditorProps> = ({
         }`,
       });
     }
-  }, [challenge, onComplete]); 
+  }, [challenge, onComplete, libDefs]);
 
+  // Initialize the editor once TypeScript is ready
   useEffect(() => {
-    if (editorRef.current && !monacoEditorRef.current) {
+    if (editorRef.current && isTypeScriptReady && !monacoEditorRef.current) {
       monacoEditorRef.current = monaco.editor.create(editorRef.current, {
         value: getStarterCode(),
         language: "typescript",
@@ -172,15 +236,17 @@ const ChallengeEditor: React.FC<ChallengeEditorProps> = ({
         ...editorOptions,
       });
 
-      const changeDisposable = monacoEditorRef.current.onDidChangeModelContent(() => {
-        if (debounceTimerRef.current) {
-          clearTimeout(debounceTimerRef.current);
+      const changeDisposable = monacoEditorRef.current.onDidChangeModelContent(
+        () => {
+          if (debounceTimerRef.current) {
+            clearTimeout(debounceTimerRef.current);
+          }
+
+          debounceTimerRef.current = setTimeout(() => {
+            checkSolution();
+          }, 500);
         }
-        
-        debounceTimerRef.current = setTimeout(() => {
-          checkSolution();
-        }, 500); 
-      });
+      );
 
       return () => {
         changeDisposable.dispose();
@@ -191,8 +257,9 @@ const ChallengeEditor: React.FC<ChallengeEditorProps> = ({
         monacoEditorRef.current = null;
       };
     }
-  }, [checkSolution]);
+  }, [isTypeScriptReady, checkSolution]);
 
+  // Reset editor when challenge changes
   useEffect(() => {
     if (monacoEditorRef.current) {
       monacoEditorRef.current.setValue(getStarterCode());
@@ -238,7 +305,7 @@ const ChallengeEditor: React.FC<ChallengeEditorProps> = ({
         />
       </div>
       <div className="bg-gray-800 p-4">
-      {result && (
+        {result && (
           <div
             className={`mt-4 p-3 rounded-md ${
               result.success
