@@ -14,7 +14,7 @@ export type Challenge = {
 };
 
 const getStarterCode = () =>
-  "// Write a value that matches the type\nconst solution = ";
+  "// Write a value that matches the type\nconst solution : Expected = ";
 
 const editorOptions: monaco.editor.IStandaloneEditorConstructionOptions = {
   minimap: { enabled: false },
@@ -46,7 +46,7 @@ const ChallengeEditor: React.FC<ChallengeEditorProps> = ({
   const checkSolution = useCallback(() => {
     const userCode = monacoEditorRef.current?.getValue() || "";
 
-    const solutionMatch = userCode.match(/const solution = (.*?)(;|\s*$)/);
+    const solutionMatch = userCode.match(/const solution : Expected = (.*?)(;|\s*$)/);
     if (!solutionMatch || !solutionMatch[1]) {
       setResult({
         success: false,
@@ -84,10 +84,10 @@ const ChallengeEditor: React.FC<ChallengeEditorProps> = ({
         {
           getCompilationSettings: () => ({
             strict: true,
-            noImplicitAny: true,
+            noImplicitAny: false,
             target: ts.ScriptTarget.ES2015,
             module: ts.ModuleKind.CommonJS,
-            lib: ["dom", "es2015"]
+            lib: ["dom", "es2022"]
           }),
           getScriptFileNames: () => [filename],
           getScriptVersion: () => "1",
@@ -161,9 +161,8 @@ const ChallengeEditor: React.FC<ChallengeEditorProps> = ({
         }`,
       });
     }
-  }, [challenge, onComplete]); // Add challenge as a dependency for the callback
+  }, [challenge, onComplete]); 
 
-  // This effect runs only once to initialize the editor
   useEffect(() => {
     if (editorRef.current && !monacoEditorRef.current) {
       monacoEditorRef.current = monaco.editor.create(editorRef.current, {
@@ -180,7 +179,7 @@ const ChallengeEditor: React.FC<ChallengeEditorProps> = ({
         
         debounceTimerRef.current = setTimeout(() => {
           checkSolution();
-        }, 500); // Wait 500ms after typing stops
+        }, 500); 
       });
 
       return () => {
@@ -192,9 +191,8 @@ const ChallengeEditor: React.FC<ChallengeEditorProps> = ({
         monacoEditorRef.current = null;
       };
     }
-  }, [checkSolution]); // Add checkSolution as a dependency
+  }, [checkSolution]);
 
-  // Reset state when challenge changes
   useEffect(() => {
     if (monacoEditorRef.current) {
       monacoEditorRef.current.setValue(getStarterCode());
