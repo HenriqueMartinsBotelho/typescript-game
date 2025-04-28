@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import ChallengeList from "./ChallengeList";
-import ChallengeEditor, { Challenge } from "./ChallengeEditor";
+import ChallengeEditor, { type Challenge } from "./ChallengeEditor";
 import { challenges } from "./challanges";
 
 // ChallengeMode can be an enum or union type
