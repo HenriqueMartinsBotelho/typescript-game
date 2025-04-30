@@ -20,7 +20,7 @@ export type Challenge = {
   hints?: string[];
 };
 
-const getStarterCode = () => `// Definir o tipo ou valor esperado aqui
+const getStarterCode = () => `
 const solution : Expected = `; // Keep placeholder simple
 
 const editorOptions: monaco.editor.IStandaloneEditorConstructionOptions =
@@ -361,15 +361,15 @@ const ChallengeEditor: React.FC<ChallengeEditorProps> = ({
       console.log("Creating Monaco Editor instance...");
 
       // Inject the actual type definition into the starter code placeholder
-      const actualStarterCode = `
-// Definição do tipo esperado (não edite esta linha):
-${challenge.typeDefinition || "type Expected = any;"} // Provide fallback
+      //       const actualStarterCode = `
+      // // Definição do tipo esperado (não edite esta linha):
+      // ${challenge.typeDefinition || "type Expected = any;"} // Provide fallback
 
-${getStarterCode()}
-       `.trim(); // Use trim() to remove leading/trailing whitespace
+      // ${getStarterCode()}
+      //        `.trim(); // Use trim() to remove leading/trailing whitespace
 
       monacoEditorRef.current = monaco.editor.create(editorRef.current, {
-        value: actualStarterCode,
+        value: "",
         language: "typescript",
         theme: "vs-dark", // Or your preferred theme
         automaticLayout: true, // Ensures editor resizes correctly
@@ -415,8 +415,6 @@ ${getStarterCode()}
 
       // Inject the new type definition
       const newStarterCode = `
-// Definição do tipo esperado (não edite esta linha):
-${challenge.typeDefinition || "type Expected = any;"}
 
 ${getStarterCode()}
        `.trim();
