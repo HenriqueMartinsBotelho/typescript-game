@@ -5,8 +5,7 @@ import * as monaco from "monaco-editor/esm/vs/editor/editor.api";
 import "monaco-editor/esm/vs/language/typescript/monaco.contribution";
 import "monaco-editor/esm/vs/editor/editor.main";
 import { MONADO_EDITOR_CONFIGURATIONS } from "./constants/monaco";
-
-const TYPESCRIPT_VERSION = "5.4.5";
+import { useTypeScriptLibs } from "./utils/getTypeScriptLibContent";
 
 export type Challenge = {
   id: string;
@@ -24,28 +23,6 @@ const solution : Expected = `;
 const editorOptions: monaco.editor.IStandaloneEditorConstructionOptions =
   MONADO_EDITOR_CONFIGURATIONS;
 
-const getTypeScriptLibContent = async (
-  libFileName: string
-): Promise<string> => {
-  const url = `https://unpkg.com/typescript@${TYPESCRIPT_VERSION}/lib/${libFileName}`;
-  try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(
-        `HTTP error! status: ${response.status} for ${libFileName}`
-      );
-    }
-    const content = await response.text();
-    return content;
-  } catch (error) {
-    console.error(
-      `Failed to fetch TypeScript lib file: ${libFileName} from ${url}`,
-      error
-    );
-    return "";
-  }
-};
-
 const ChallengeEditor: React.FC<ChallengeEditorProps> = ({
   challenge,
   onComplete,
@@ -56,8 +33,9 @@ const ChallengeEditor: React.FC<ChallengeEditorProps> = ({
   } | null>(null);
   const [showHint, setShowHint] = useState(false);
   const [isMonacoReady, setIsMonacoReady] = useState(false);
-  const [tsLibFiles, setTsLibFiles] = useState<Record<string, string>>({});
-  const [isLoadingLibs, setIsLoadingLibs] = useState(true);
+
+  // Use our custom hook to load TypeScript libraries
+  const { tsLibFiles, isLoadingLibs } = useTypeScriptLibs();
 
   const editorRef = useRef<HTMLDivElement>(null);
   const monacoEditorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(
@@ -186,9 +164,7 @@ const ChallengeEditor: React.FC<ChallengeEditorProps> = ({
                   (challenge.typeDefinition?.match(/\n/g)?.length || 0) +
                   4;
                 const adjustedLine = Math.max(1, line + 1 - prependedLines);
-                lineInfo = `(aprox linha ${adjustedLine}, col ${
-                  character + 1
-                })`;
+                lineInfo = `(aprox line ${adjustedLine}, col ${character + 1})`;
               } catch (e) {}
             }
             return `Erro ${lineInfo}: ${message}`;
@@ -197,14 +173,14 @@ const ChallengeEditor: React.FC<ChallengeEditorProps> = ({
 
         setResult({
           success: false,
-          message: `Erro(s) de tipo encontrado(s):\n${formattedDiagnostics}`,
+          message: `Error:\n${formattedDiagnostics}`,
         });
         return;
       }
 
       setResult({
         success: true,
-        message: "Parabéns! Sua solução passa na verificação de tipo!",
+        message: "Congratulations! Your solution passes type checking!",
       });
 
       if (!isCompletedRef.current) {
@@ -215,56 +191,10 @@ const ChallengeEditor: React.FC<ChallengeEditorProps> = ({
       console.error("Erro durante a validação TypeScript:", error);
       setResult({
         success: false,
-        message: `Erro inesperado na validação: ${
-          error?.message || String(error)
-        }`,
+        message: `Error unexpected: ${error?.message || String(error)}`,
       });
     }
   }, [challenge, onComplete, tsLibFiles, isMonacoReady, isLoadingLibs]);
-
-  useEffect(() => {
-    const loadLibs = async () => {
-      setIsLoadingLibs(true);
-      const libFiles = [
-        "lib.es5.d.ts",
-        "lib.es2015.core.d.ts",
-        "lib.es2015.promise.d.ts",
-        "lib.es2016.array.include.d.ts",
-        "lib.es2022.d.ts",
-        "lib.dom.d.ts",
-        "lib.dom.iterable.d.ts",
-      ];
-
-      const libContents: Record<string, string> = {};
-
-      try {
-        console.log("Starting fetch for TypeScript libs...");
-        const settledPromises = await Promise.allSettled(
-          libFiles.map(async (libFile) => ({
-            name: libFile,
-            content: await getTypeScriptLibContent(libFile),
-          }))
-        );
-
-        settledPromises.forEach((result) => {
-          if (result.status === "fulfilled" && result.value.content) {
-            libContents[result.value.name] = result.value.content;
-          } else if (result.status === "rejected") {
-            console.error(`Failed to load lib file:`, result.reason);
-          }
-        });
-
-        setTsLibFiles(libContents);
-        console.log("TypeScript lib fetching complete.");
-      } catch (error) {
-        console.error("Failed to load TypeScript lib files:", error);
-      } finally {
-        setIsLoadingLibs(false);
-      }
-    };
-
-    loadLibs();
-  }, []);
 
   useEffect(() => {
     if (isLoadingLibs || !monaco.languages.typescript) {
@@ -374,7 +304,7 @@ ${getStarterCode()}
         <p className="text-gray-300 text-sm mb-3">{challenge.description}</p>
 
         <div className="mt-2 p-3 bg-gray-900 rounded-md font-mono text-sm overflow-x-auto">
-          <h3 className="text-gray-400 text-xs mb-1">Tipo Esperado:</h3>
+          <h3 className="text-gray-400 text-xs mb-1">Expected Type:</h3>
           <pre className="text-cyan-300">
             <code>{challenge.typeDefinition || "type Expected = any;"}</code>
           </pre>

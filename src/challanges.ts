@@ -75,37 +75,29 @@ export const challenges: Challenge[] = [
   },
   {
     id: "7",
-    title: "Mapped Type - Readonly",
-    description:
-      "Create a value that matches this type where all properties are made readonly using a mapped type.",
-    mode: "value-to-type",
-    typeDefinition:
-      "type Config = { apiKey: string; timeout: number };\ntype Expected = Readonly<Config>;",
-    hints: [
-      "First, create an object that conforms to the `Config` type.",
-      "The `Readonly<T>` utility type transforms all properties of `T` to be readonly.",
-      "The value itself will look like a normal `Config` object, but TypeScript will prevent modification of its properties after creation.",
-      "Example: { apiKey: 'xyz123', timeout: 10000 }",
-    ],
-  },
-  {
-    id: "8",
     title: "Conditional Type Evaluation",
     description:
       "Create a value that matches the resulting type of this conditional type.",
     mode: "value-to-type",
-    typeDefinition:
-      "type Check<T> = T extends { value: number } ? number[] : string[];\ntype Expected = Check<{ value: 10 }>;",
+    typeDefinition: `
+      type NonEmptyArray<T> = [T, ...T[]];
+
+      type Check<T> = T extends { value: number }
+        ? NonEmptyArray<number>
+        : NonEmptyArray<string>;
+        
+      type Expected = Check<{ value: 10 }>;
+      `,
     hints: [
       "Evaluate the conditional type `Check<T>` with the provided type `{ value: 10 }`.",
       "Does `{ value: 10 }` extend `{ value: number }`? Yes, it does.",
       "Therefore, the resulting type is the 'true' branch: `number[]`.",
       "Create an array of numbers.",
-      "Example: [1, 2, 3]",
+      //"Example: [1, 2, 3]",
     ],
   },
   {
-    id: "9",
+    id: "8",
     title: "Generic Function with Constraints",
     description:
       "Create a function value that matches this generic function type, which includes a constraint on the generic type.",
@@ -121,39 +113,7 @@ export const challenges: Challenge[] = [
     ],
   },
   {
-    id: "10",
-    title: "Generic Class Usage",
-    description:
-      "Create an instance of this generic class, providing a specific type argument.",
-    mode: "value-to-type",
-    typeDefinition:
-      "class DataStorage<T> {\n  private data: T;\n  constructor(initialData: T) {\n    this.data = initialData;\n  }\n  getData(): T {\n    return this.data;\n  }\n}\ntype Expected = DataStorage<boolean[]>;",
-    hints: [
-      "Instantiate the `DataStorage` class.",
-      "Specify `boolean[]` as the type argument for `T`.",
-      "The constructor requires an initial value matching the type argument (`boolean[]`).",
-      "Example: new DataStorage<boolean[]>([true, false, true])",
-    ],
-  },
-  {
-    id: "11",
-    title: "Advanced Generic Function - Key Mapping",
-    description:
-      "Create a function value that matches this generic type, mapping keys of an object.",
-    mode: "value-to-type",
-    typeDefinition:
-      "type Expected = <T, K extends keyof T>(obj: T, key: K) => T[K];",
-    hints: [
-      "Define a generic function, for example, `getProperty`.",
-      "It takes two type parameters: `T` (the object type) and `K` (a key of `T`).",
-      "It accepts two arguments: `obj` of type `T` and `key` of type `K`.",
-      "The function should return the value of the property specified by `key` from the `obj`.",
-      "This uses indexed access types (`T[K]`).",
-      "Example: const getProperty = <T, K extends keyof T>(obj: T, key: K): T[K] => obj[key];",
-    ],
-  },
-  {
-    id: "12",
+    id: "9",
     title: "Utility Type - Omit",
     description:
       "Create a value that matches this type constructed using the Omit utility type.",
