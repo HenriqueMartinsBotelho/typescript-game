@@ -127,4 +127,94 @@ export const challenges: Challenge[] = [
       "Example: { id: 'evt-567', source: 'sensor-A' }",
     ],
   },
+  {
+    id: "10",
+    title: "Optional Properties",
+    description:
+      "Create a value that matches this type with optional properties",
+    mode: "value-to-type",
+    typeDefinition:
+      "type Expected = { name: string; age?: number; email?: string };",
+    hints: [
+      "The object must have a name property, while age and email are optional",
+      "Example: { name: 'Bob' } or { name: 'Bob', age: 25, email: 'bob@example.com' }",
+    ],
+  },
+  {
+    id: "11",
+    title: "Readonly Type",
+    description: "Create a value that matches this readonly type",
+    mode: "value-to-type",
+    typeDefinition: "type Expected = Readonly<{ id: number; status: string }>;",
+    hints: [
+      "The object should have id (number) and status (string) properties",
+      "The Readonly utility type makes all properties immutable",
+      "Example: { id: 1, status: 'active' }",
+    ],
+  },
+  {
+    id: "12",
+    title: "Record Utility Type",
+    description: "Create a value that matches this Record type",
+    mode: "value-to-type",
+    typeDefinition:
+      "type Expected = Record<'up' | 'down' | 'left' | 'right', number>;",
+    hints: [
+      "The object must have exactly four keys: 'up', 'down', 'left', 'right', each with a number value",
+      "Example: { up: 1, down: -1, left: -1, right: 1 }",
+    ],
+  },
+  {
+    id: "13",
+    title: "Mapped Type",
+    description: "Create a value that matches this mapped type",
+    mode: "value-to-type",
+    typeDefinition:
+      "type Keys = 'x' | 'y'; type Expected = { [K in Keys]: string };",
+    hints: [
+      "The object must have properties 'x' and 'y', both with string values",
+      "Example: { x: '10px', y: '20px' }",
+    ],
+  },
+  {
+    id: "14",
+    title: "Type Predicate Function",
+    description: "Create a function that matches this type predicate signature",
+    mode: "value-to-type",
+    typeDefinition: "type Expected = (value: unknown) => value is string;",
+    hints: [
+      "Define a function that checks if the input is a string and returns a type predicate",
+      "Example: const isString = (value: unknown): value is string => typeof value === 'string';",
+    ],
+  },
+  {
+    id: "15",
+    title: "Partial Utility Type",
+    description: "Create a value that matches this Partial type",
+    mode: "value-to-type",
+    typeDefinition:
+      "type Config = { host: string; port: number; secure: boolean }; type Expected = Partial<Config>;",
+    hints: [
+      "The Partial utility type makes all properties optional",
+      "The object can have any subset of host, port, and secure properties",
+      "Example: { host: 'localhost' } or { port: 8080, secure: true }",
+    ],
+  },
+  {
+    id: "16",
+    title: "Discriminated Union",
+    description: "Create a value that matches this discriminated union type",
+    mode: "value-to-type",
+    typeDefinition: `
+      type Success = { kind: 'success'; data: string };
+      type Error = { kind: 'error'; message: string };
+      type Expected = Success | Error;
+    `,
+    hints: [
+      "The object must have a 'kind' property with either 'success' or 'error'",
+      "If kind is 'success', include a 'data' string property",
+      "If kind is 'error', include a 'message' string property",
+      "Example: { kind: 'success', data: 'Completed' } or { kind: 'error', message: 'Failed' }",
+    ],
+  },
 ];
